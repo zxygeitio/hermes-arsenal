@@ -1,0 +1,502 @@
+{
+  "yonyou_u8_nc": {
+    "name": "用友U8/NC",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(Yonyou|u8c|uap|nccloud)",
+        "(?i)X-Powered-By:.*(UAP|Yonyou)"
+      ],
+      "body": [
+        "用友U8",
+        "用友网络",
+        "Yonyou",
+        "NCCloud",
+        "uap\\.desktop",
+        "iuap"
+      ],
+      "cookies": [
+        "(?i)(JSESSIONID|U8C|NCSESSIONID|uap_locale)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/u8cloud/",
+        "method": "GET",
+        "desc": "U8 Cloud入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/nccloud/resources/uap/rbac/login/main/index.html",
+        "method": "GET",
+        "desc": "NC Cloud登录页识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/service/",
+        "method": "GET",
+        "desc": "用友服务目录探测",
+        "severity": "low",
+        "check": "contains_data"
+      },
+      {
+        "path": "/uapws/",
+        "method": "GET",
+        "desc": "UAP WebService入口识别",
+        "severity": "low",
+        "check": "contains_data"
+      }
+    ]
+  },
+  "kingdee_cloud_galaxy": {
+    "name": "金蝶云星空",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(Kingdee|K3Cloud|BOS)",
+        "(?i)X-Powered-By:.*ASP\\.NET"
+      ],
+      "body": [
+        "金蝶云星空",
+        "Kingdee",
+        "K3Cloud",
+        "BOS",
+        "kdservice",
+        "HTML5Client"
+      ],
+      "cookies": [
+        "(?i)(ASP\\.NET_SessionId|kdservice-sessionid|KDSVC)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/K3Cloud/",
+        "method": "GET",
+        "desc": "金蝶云星空主入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/K3Cloud/HTML5/index.aspx",
+        "method": "GET",
+        "desc": "HTML5客户端入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/K3Cloud/Silverlight/Index.aspx",
+        "method": "GET",
+        "desc": "旧版客户端入口识别",
+        "severity": "low",
+        "check": "contains_data"
+      },
+      {
+        "path": "/K3Cloud/Kingdee.BOS.WebApi.ServicesStub.AuthService.ValidateUser.common.kdsvc",
+        "method": "GET",
+        "desc": "WebAPI服务端点存在性识别",
+        "severity": "info",
+        "check": "has_json"
+      }
+    ]
+  },
+  "landray_oa": {
+    "name": "蓝凌OA",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(Landray|EKP|Tomcat)",
+        "(?i)X-Powered-By:.*JSP"
+      ],
+      "body": [
+        "蓝凌",
+        "Landray",
+        "EKP",
+        "LKS",
+        "sys/ui/extend",
+        "km/review"
+      ],
+      "cookies": [
+        "(?i)(JSESSIONID|LtpaToken|ekp_locale)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/ekp/login.jsp",
+        "method": "GET",
+        "desc": "蓝凌EKP登录入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/sys/ui/extend/theme/default/style/icon.jsp",
+        "method": "GET",
+        "desc": "主题资源入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/admin.do",
+        "method": "GET",
+        "desc": "管理路由存在性识别",
+        "severity": "low",
+        "check": "contains_data"
+      },
+      {
+        "path": "/third/pda/login.jsp",
+        "method": "GET",
+        "desc": "移动端登录入口识别",
+        "severity": "low",
+        "check": "contains_data"
+      }
+    ]
+  },
+  "tongda_oa": {
+    "name": "通达OA",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(nginx|Apache|TDOA)",
+        "(?i)X-Powered-By:.*PHP"
+      ],
+      "body": [
+        "通达OA",
+        "Office Anywhere",
+        "Tongda",
+        "general/login_code",
+        "ispirit",
+        "MYOA"
+      ],
+      "cookies": [
+        "(?i)(PHPSESSID|OA_USER_ID|SID_[0-9a-f]+)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/login.php",
+        "method": "GET",
+        "desc": "通达OA登录入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/general/index.php",
+        "method": "GET",
+        "desc": "通达OA业务首页入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/ispirit/login_code.php",
+        "method": "GET",
+        "desc": "移动/即时通讯验证码入口识别",
+        "severity": "low",
+        "check": "contains_data"
+      },
+      {
+        "path": "/static/templates/2013_01/index.css",
+        "method": "GET",
+        "desc": "默认模板静态资源识别",
+        "severity": "info",
+        "check": "contains_data"
+      }
+    ]
+  },
+  "inspur_gs": {
+    "name": "浪潮GS",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(Inspur|Tomcat|WebLogic)",
+        "(?i)X-Powered-By:.*(Servlet|JSP)"
+      ],
+      "body": [
+        "浪潮GS",
+        "Inspur",
+        "GSCloud",
+        "cwbase",
+        "iGIX",
+        "Genersoft"
+      ],
+      "cookies": [
+        "(?i)(JSESSIONID|gs_session|cwbase_locale)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/cwbase/",
+        "method": "GET",
+        "desc": "浪潮GS基础平台入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/cwbase/web/Login.jsp",
+        "method": "GET",
+        "desc": "浪潮GS登录页识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/gscloud/",
+        "method": "GET",
+        "desc": "GS Cloud入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/eai/",
+        "method": "GET",
+        "desc": "企业应用集成入口识别",
+        "severity": "low",
+        "check": "contains_data"
+      }
+    ]
+  },
+  "zfsoft_jw": {
+    "name": "正方教务",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(Tomcat|Apache|nginx)",
+        "(?i)X-Powered-By:.*(JSP|Servlet)"
+      ],
+      "body": [
+        "正方",
+        "ZFSoft",
+        "教务管理系统",
+        "jwglxt",
+        "jsxsd",
+        "xtgl/login_slogin"
+      ],
+      "cookies": [
+        "(?i)(JSESSIONID|route|SERVERID)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/jwglxt/xtgl/login_slogin.html",
+        "method": "GET",
+        "desc": "正方新版教务登录入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/jsxsd/",
+        "method": "GET",
+        "desc": "正方旧版教务入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/jwglxt/xtgl/index_initMenu.html",
+        "method": "GET",
+        "desc": "教务菜单初始化入口存在性识别",
+        "severity": "low",
+        "check": "contains_data"
+      },
+      {
+        "path": "/jwglxt/kaptcha",
+        "method": "GET",
+        "desc": "验证码接口识别",
+        "severity": "info",
+        "check": "always"
+      }
+    ]
+  },
+  "qiangzhi_jw": {
+    "name": "强智教务",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(Tomcat|Apache|nginx)",
+        "(?i)X-Powered-By:.*(JSP|Servlet)"
+      ],
+      "body": [
+        "强智",
+        "QiangZhi",
+        "教学综合信息服务平台",
+        "jwxt",
+        "xk/LoginToXk",
+        "qzjw"
+      ],
+      "cookies": [
+        "(?i)(JSESSIONID|SERVERID|qz_session)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/jwxt/",
+        "method": "GET",
+        "desc": "强智教务系统入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/jwxt/Logon.do?method=logon",
+        "method": "GET",
+        "desc": "强智登录路由识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/jwxt/verifycode.servlet",
+        "method": "GET",
+        "desc": "验证码接口识别",
+        "severity": "info",
+        "check": "always"
+      },
+      {
+        "path": "/jwxt/xk/LoginToXk",
+        "method": "GET",
+        "desc": "选课模块入口识别",
+        "severity": "low",
+        "check": "contains_data"
+      }
+    ]
+  },
+  "kingosoft_jw": {
+    "name": "青果教务",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(IIS|ASP\\.NET|nginx)",
+        "(?i)X-Powered-By:.*ASP\\.NET"
+      ],
+      "body": [
+        "青果",
+        "KINGOSOFT",
+        "Kingosoft",
+        "教务网络管理系统",
+        "jwweb",
+        "ZNPK"
+      ],
+      "cookies": [
+        "(?i)(ASP\\.NET_SessionId|JSESSIONID|kingo)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/jwweb/",
+        "method": "GET",
+        "desc": "青果教务入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/jwweb/default.aspx",
+        "method": "GET",
+        "desc": "青果教务默认登录页识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/ZNPK/Private/List_Xnxq.aspx",
+        "method": "GET",
+        "desc": "排课模块学年学期页面存在性识别",
+        "severity": "low",
+        "check": "contains_data"
+      },
+      {
+        "path": "/jwweb/sys/ValidateCode.aspx",
+        "method": "GET",
+        "desc": "验证码接口识别",
+        "severity": "info",
+        "check": "always"
+      }
+    ]
+  },
+  "wisedu": {
+    "name": "金智教育Wisedu",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(Wisedu|nginx|Tomcat)",
+        "(?i)X-Powered-By:.*(Wisedu|Java|JSP)"
+      ],
+      "body": [
+        "金智教育",
+        "Wisedu",
+        "智慧校园",
+        "ehall",
+        "amp-auth",
+        "cas/login"
+      ],
+      "cookies": [
+        "(?i)(JSESSIONID|MOD_AUTH_CAS|iPlanetDirectoryPro|route)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/ehall/",
+        "method": "GET",
+        "desc": "网上办事大厅入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/amp-auth-adapter/login",
+        "method": "GET",
+        "desc": "统一认证适配登录入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/cas/login",
+        "method": "GET",
+        "desc": "CAS统一认证入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/publicapp/sys/itpub/MobileCommon/getMenuInfo.do",
+        "method": "GET",
+        "desc": "公共应用菜单接口存在性识别",
+        "severity": "low",
+        "check": "has_json"
+      }
+    ]
+  },
+  "shuwei_jw": {
+    "name": "树维教务",
+    "match": {
+      "headers": [
+        "(?i)Server:.*(Tomcat|nginx|Apache)",
+        "(?i)X-Powered-By:.*(JSP|Servlet)"
+      ],
+      "body": [
+        "树维",
+        "ShuWei",
+        "教学管理信息服务平台",
+        "swjw",
+        "student/login",
+        "jwgl"
+      ],
+      "cookies": [
+        "(?i)(JSESSIONID|SERVERID|sw_session)="
+      ]
+    },
+    "paths": [
+      {
+        "path": "/swjw/",
+        "method": "GET",
+        "desc": "树维教务入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/student/login",
+        "method": "GET",
+        "desc": "学生端登录入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/teacher/login",
+        "method": "GET",
+        "desc": "教师端登录入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      },
+      {
+        "path": "/jwgl/",
+        "method": "GET",
+        "desc": "教务管理入口识别",
+        "severity": "info",
+        "check": "contains_data"
+      }
+    ]
+  }
+}

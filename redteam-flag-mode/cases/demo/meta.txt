@@ -1,0 +1,4 @@
+case=demo
+created_or_seen=2026-05-23T15:13:28+08:00
+target=127.0.0.1
+base=/root/.hermes/redteam-flag-mode/cases/demo

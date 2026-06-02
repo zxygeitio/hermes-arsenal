@@ -1,0 +1,62 @@
+{
+  "aliyun_access_key": {
+    "name": "阿里云AccessKey",
+    "severity": "high",
+    "pattern": "(?<![A-Z0-9])LTAI[a-zA-Z0-9]{12,20}(?![A-Z0-9])",
+    "description": "阿里云AccessKey ID泄露"
+  },
+  "tencent_secret_id": {
+    "name": "腾讯云SecretId",
+    "severity": "high",
+    "pattern": "(?<![A-Z0-9])AKID[a-zA-Z0-9]{13,20}(?![A-Z0-9])",
+    "description": "腾讯云SecretId泄露"
+  },
+  "huawei_cloud_ak": {
+    "name": "华为云AK",
+    "severity": "high",
+    "pattern": "(?<![A-Z0-9])AK[0-9A-Z]{20}(?![A-Z0-9])",
+    "description": "华为云Access Key泄露"
+  },
+  "dingtalk_webhook": {
+    "name": "钉钉Webhook",
+    "severity": "high",
+    "pattern": "https://oapi\\.dingtalk\\.com/robot/send\\?access_token=[a-zA-Z0-9]+",
+    "description": "钉钉机器人Webhook泄露"
+  },
+  "wecom_webhook": {
+    "name": "企业微信Webhook",
+    "severity": "high",
+    "pattern": "https://qyapi\\.weixin\\.qq\\.com/cgi-bin/webhook/send\\?key=[a-zA-Z0-9-]+",
+    "description": "企业微信机器人Webhook泄露"
+  },
+  "smtp_password": {
+    "name": "SMTP密码",
+    "severity": "high",
+    "pattern": "(?i)(smtp|mail).{0,20}(password|passwd|pwd)\\s*[:=]\\s*[\"'][^\"']{6,}[\"']",
+    "description": "SMTP邮件密码配置泄露"
+  },
+  "mysql_conn_string": {
+    "name": "MySQL连接串",
+    "severity": "critical",
+    "pattern": "(?i)mysql://[^:\"'\\s]+:[^@\"'\\s]+@[^/\\s\"']+",
+    "description": "MySQL数据库连接字符串含密码"
+  },
+  "redis_conn_url": {
+    "name": "Redis连接URL",
+    "severity": "critical",
+    "pattern": "(?i)redis://[^@\\s\"']+@[^/\\s\"']+",
+    "description": "Redis认证连接URL泄露"
+  },
+  "mongodb_conn_string": {
+    "name": "MongoDB连接串",
+    "severity": "critical",
+    "pattern": "(?i)mongodb(\\+srv)?://[^:]+:[^@]+@[^/\\s\"']+",
+    "description": "MongoDB连接字符串含密码"
+  },
+  "jwt_sign_secret": {
+    "name": "JWT签名密钥",
+    "severity": "high",
+    "pattern": "(?i)(jwt[_-]?(secret|key)|signing[_-]?key|token[_-]?secret)\\s*[:=]\\s*[\"'][^\"']{8,}[\"']",
+    "description": "JWT签名密钥泄露"
+  }
+}

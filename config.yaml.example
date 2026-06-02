@@ -1,0 +1,58 @@
+# Hermes Agent Configuration Template
+# Copy to config.yaml and fill in your values
+
+model:
+  provider: openrouter
+  model: anthropic/claude-sonnet-4
+  base_url: https://openrouter.ai/api/v1
+  api_key: ${OPENROUTER_API_KEY}  # Set in .env or environment
+
+# Custom providers (optional)
+custom_providers:
+  xiaomi:
+    base_url: https://your-xiaomi-endpoint.com/v1
+    api_key: ${XIAOMI_API_KEY}
+
+# Terminal settings
+terminal:
+  timeout: 180
+  background_timeout: 3600
+
+# Browser settings
+browser:
+  session_timeout: 300
+  inactivity_timeout: 120
+
+# Delegation settings
+delegation:
+  max_concurrent_children: 5
+  max_spawn_depth: 1
+
+# Platform integrations (configure as needed)
+feishu:
+  app_id: ${FEISHU_APP_ID}
+  app_secret: ${FEISHU_APP_SECRET}
+  connection_mode: websocket
+
+telegram:
+  bot_token: ${TELEGRAM_BOT_TOKEN}
+
+discord:
+  bot_token: ${DISCORD_BOT_TOKEN}
+
+# MCP servers
+mcp:
+  servers: {}
+  # Example:
+  # hexstrike:
+  #   command: /path/to/hexstrike
+  #   args: ["mcp"]
+
+# Skills settings
+skills:
+  auto_update: true
+  curator_enabled: true
+
+# Cron settings
+cron:
+  max_concurrent_jobs: 5
