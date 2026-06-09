@@ -146,6 +146,49 @@ def collect_evidence_manifest(workspace: Path) -> dict[str, Any]:
     }
 
 
+def verify_evidence_manifest(workspace: Path, manifest_path: Path) -> dict[str, Any]:
+    """Verify a previously generated evidence manifest against current files."""
+    workspace = workspace.expanduser().resolve()
+    manifest = read_json(manifest_path.expanduser())
+    if not isinstance(manifest, dict):
+        return {"ok": False, "reason": "manifest is not valid JSON", "missing": [], "changed": [], "extra": []}
+
+    expected_files = {str(item.get("path", "")): item for item in manifest.get("files", []) if isinstance(item, dict)}
+    current = collect_evidence_manifest(workspace)
+    current_files = {str(item.get("path", "")): item for item in current.get("files", []) if isinstance(item, dict)}
+
+    missing = sorted(path for path in expected_files if path not in current_files)
+    extra = sorted(path for path in current_files if path not in expected_files)
+    changed = []
+    for path, expected in sorted(expected_files.items()):
+        actual = current_files.get(path)
+        if not actual:
+            continue
+        if actual.get("sha256") != expected.get("sha256") or actual.get("size") != expected.get("size"):
+            changed.append({
+                "path": path,
+                "expected_size": expected.get("size"),
+                "actual_size": actual.get("size"),
+                "expected_sha256": expected.get("sha256"),
+                "actual_sha256": actual.get("sha256"),
+            })
+
+    expected_manifest_sha = manifest.get("manifest_sha256")
+    ok = not missing and not changed and current.get("manifest_sha256") == expected_manifest_sha
+    return {
+        "ok": ok,
+        "workspace": str(workspace),
+        "manifest": str(manifest_path),
+        "expected_file_count": manifest.get("file_count", len(expected_files)),
+        "actual_file_count": current.get("file_count", len(current_files)),
+        "expected_manifest_sha256": expected_manifest_sha,
+        "actual_manifest_sha256": current.get("manifest_sha256"),
+        "missing": missing,
+        "changed": changed,
+        "extra": extra,
+    }
+
+
 def infer_scope_hosts(scope_text: str, state: dict[str, Any]) -> set[str]:
     hosts: set[str] = set()
     target = str(state.get("target") or "").strip().lower()
@@ -363,12 +406,18 @@ def main() -> int:
     parser.add_argument("--out", default="", help="Write markdown report path")
     parser.add_argument("--json-out", default="", help="Write JSON report path")
     parser.add_argument("--manifest-out", default="", help="Write evidence manifest JSON path")
+    parser.add_argument("--verify-manifest", default="", help="Verify an existing evidence manifest JSON and exit")
     args = parser.parse_args()
 
     workspace = Path(args.workspace)
     if not workspace.exists():
         print(f"Workspace not found: {workspace}")
         return 1
+
+    if args.verify_manifest:
+        verification = verify_evidence_manifest(workspace, Path(args.verify_manifest))
+        print(json.dumps(verification, ensure_ascii=False, indent=2))
+        return 0 if verification.get("ok") else 3
 
     result = evaluate(workspace)
     md = format_markdown(result)
