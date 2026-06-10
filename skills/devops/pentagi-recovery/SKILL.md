@@ -142,6 +142,34 @@ All agent types (assistant, adviser, reflector, searcher, coder, etc.) should us
 
 After editing .env, restart containers in order (pgvector first).
 
+## Security Hardening
+
+### Docker Socket Container Escape (Issue #337)
+
+**问题**: 当 `DOCKER_INSIDE=true` 时，host Docker socket 以读写模式挂载到 agent 容器。prompt 注入可让 agent 执行 `docker run --privileged -v /:/host` 完全控制 host。
+
+**缓解措施**:
+```bash
+# .env 中设置
+DOCKER_INSIDE=false          # 不挂载 Docker socket（最安全）
+# 或
+DOCKER_INSIDE=true           # 需要 Docker API 时
+DOCKER_SOCKET_READONLY=true  # 挂载为 :ro，防止写操作
+```
+
+**验证**:
+```bash
+# 检查 agent 容器中 socket 是否只读
+docker exec pentagi-terminal-1 mount | grep docker.sock
+# 应显示 "ro" 而非 "rw"
+```
+
+**注意**: `:ro` 仍允许 Docker API 查询（inspect/logs/stats），但阻止 create/start/exec 等写操作。
+
+### .env.example 默认值
+
+2026-06-07 后的版本：`.env.example` 中 `DOCKER_INSIDE` 默认改为 `false`，新增 `DOCKER_SOCKET_READONLY=true`。旧版本需要手动修改。
+
 ## Known Issues
 
 ### Flow Creation Fails with `gpt-5.4-nano` Error

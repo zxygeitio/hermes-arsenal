@@ -1,5 +1,10 @@
 # CAS统一认证系统漏洞指纹库
 
+详细测试模式按厂商拆分:
+- `references/cas-wisedu-testing-patterns.md` — 金智教育 wisedu ycServer
+- `references/lianyi-cas-testing-patterns.md` — 联奕 Lianyi lyuapServer
+- `references/cust-edu-cn-testing-patterns.md` — Apereo CAS + PAC4J
+
 ## 背景
 CAS (Central Authentication Service) 是国内高校最常用的统一认证系统。
 常见厂商: 金智教育、新开普、联奕、希尔等。
@@ -165,9 +170,20 @@ https://ids.HOST/authserver/login?service=https%3A%2F%2Fvpn.HOST%2Fusers%2Fauth%
 导致状态码扫描工具(report 200)误报为真实暴露。**必须检查响应体内容**，而非仅看状态码。
 识别: `<TITLE>访问禁止</TITLE>` + `检测到可疑访问，事件编号：XXXXXXXXX`
 
+## 变体: Lianyi CAS (联奕统一身份认证 / lyuapServer)
+
+联奕科技(LIANYI TECHNOLOGY CO.,LTD.)统一身份认证平台，后端Liferay Portal + Tomcat 7.x。
+
+**快速识别:** CAS路径 `/lyuapServer/login`，管理后台 `/ly_web_casconsole/`，RSA加密(BigInt.js/Barrett.js)，`captcha.jsp`验证码，服务器头 `Apache-Coyote/1.1`，LT token含 `cas01.example.org`。
+
+**关键差异:** 有独立管理后台(ly_web_casconsole)且无验证码保护，可暴力破解。验证码通过`getyzm.action`返回明文JSON。密保校验逻辑缺陷(所有用户返回true)。
+
+**详细测试模式:** `references/lianyi-cas-testing-patterns.md`
+
 ## 报告角度
 - "CAS统一认证系统密码加密盐值泄露" [低危]
 - "CAS JSESSIONID URL泄露" [低危]
 - 两者可合并为一份报告提交
 - ycServer CAS: CORS预检配置错误 [中危] + 堆栈跟踪泄露 [中危] + URL重定向 [中危]
 - ycServer CAS: 前端DEFAULT_SALT硬编码 [低危]
+- 联奕Lianyi CAS: 管理后台公网暴露 [中危] + Open Redirect [低危] + 验证码明文泄露 [中危] + 密保逻辑缺陷 [中危]

@@ -33,7 +33,8 @@ import argparse
 from datetime import datetime
 
 
-WORKSPACE_BASE = '/tmp/vuln_reports'
+import os
+WORKSPACE_BASE = os.environ.get('PENTEST_WORKSPACE', '/tmp/vuln_reports')
 
 
 def get_workspace(domain):

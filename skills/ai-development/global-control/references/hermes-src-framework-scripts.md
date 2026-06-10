@@ -7,8 +7,11 @@ These scripts are local control-plane helpers for repeatable SRC/pentest work. T
 - `/root/.hermes/scripts/src-workspace-init.py`
 - `/root/.hermes/scripts/src-http-probe.py`
 - `/root/.hermes/scripts/src-quality-gate.py`
+- `/root/.hermes/scripts/src-practical-next.py` — **v2.0** subdomain tiering (P0/P1/P2/SKIP) + auto-skip low-value hosts
+- `/root/.hermes/scripts/src-think.py` — hypothesis synthesis from probe/API/JS/Burp evidence
 - `/root/.hermes/scripts/src-browser-capture.py`
 - `/root/.hermes/scripts/src-workflow-chain-builder.py`
+- `/root/.hermes/scripts/agent-exec-monitor.py` — **v2.0** Loop Guard with semantic loop detection, time gate, rejected memory, stagnation detection
 
 - `src-api-recon-ranker.py` turns noisy `endpoints.tsv` / `js_api_findings.json` into a business-prioritized API queue.
 - `src-idor-check.py` performs low-impact BOLA/IDOR comparison with candidate IDs plus invalid/random controls.
@@ -247,6 +250,47 @@ Add `--include-hermes-cli` only when full Hermes CLI checks are needed and accep
    - sensitive field and data-volume proof;
    - duplicate/root-cause check against `/tmp/vuln_reports` and skill references.
 7. If no final proof, update `negative.md` and, for repeated target lessons, write a skill reference.
+
+## 12. Practical next-step ranking (v2.0)
+
+After alive URLs are known, rank and filter them by attack value before testing:
+
+```bash
+/usr/bin/python3 /root/.hermes/scripts/src-practical-next.py "$WS" --tiers --show-skipped --top 20
+```
+
+v2.0 tiering:
+- **P0**: api/authserver/actuator/swagger/upload/graphql/grpc (score +40)
+- **P1**: ehall/cas/sso/oa/admin/manage/pay (score +25)
+- **P2**: app/mobile/h5/wechat (score +10)
+- **SKIP**: cdn/static/www/news/test/dev/staging (auto-filtered)
+
+Flags:
+- `--skip-threshold N` — skip hosts scoring below N (default: 15)
+- `--show-skipped` — show filtered low-value hosts
+- `--tiers` — show tier distribution summary
+
+## 13. Loop Guard v2.0 (agent-exec-monitor.py)
+
+For SRC/penetration long tasks, use the execution monitor:
+
+```bash
+# Quick health check (all guards in one view)
+/usr/bin/python3 /root/.hermes/scripts/agent-exec-monitor.py health
+
+# Record user's rejection of a finding (prevents repetition)
+/usr/bin/python3 /root/.hermes/scripts/agent-exec-monitor.py reject curl "target.com" "ip_leak" "user says no value"
+
+# Log tool calls with evidence/hypothesis
+/usr/bin/python3 /root/.hermes/scripts/agent-exec-monitor.py log curl "target.com" "found api endpoint" "possible IDOR"
+```
+
+v2.0 guards:
+- Semantic loop detection: plan-level hash (warn@3x, force@5x)
+- Time gate: minutes since last confirmed finding (warn@10min, force@20min)
+- Rejected memory: persistent across calls, warns on same finding type
+- Stagnation: consecutive no-evidence calls (warn@8, force@12)
+- Same-tool loop: (warn@5, force@8)
 
 ## Self-test command
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """
 SRC Fast Assessment - 一键目标快筛
 60秒内判断目标是否值得深挖，输出优先攻击面
@@ -21,11 +21,13 @@ import argparse
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from urllib.parse import urlparse
 
 # ─── 高价值指纹模式库 ───────────────────────────────────────────────
 FINGERPRINT_MAP = {
@@ -210,9 +212,11 @@ WAF_SIGNATURES = {
 
 
 def run_cmd(cmd, timeout=15):
-    """Run a shell command and return stdout."""
+    """Run a command and return stdout. Accepts string or list."""
     try:
-        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+        if isinstance(cmd, str):
+            cmd = shlex.split(cmd)
+        r = subprocess.run(cmd, shell=False, capture_output=True, text=True, timeout=timeout)
         return r.stdout.strip()
     except subprocess.TimeoutExpired:
         return ""
@@ -242,9 +246,10 @@ def subdomain_enum(domain, outdir):
         for entry in data:
             for name in entry.get('name_value', '').split('\n'):
                 name = name.strip().lower()
-                if name and '*' not in name and domain in name:
+                # Strict FQDN validation: must be valid hostname ending with domain
+                if name and '*' not in name and name.endswith(f'.{domain}') and re.match(r'^[a-z0-9][a-z0-9.-]*[a-z0-9]$', name):
                     subs.add(name)
-    except:
+    except Exception:
         pass
 
     subs_list = sorted(subs)
@@ -273,11 +278,14 @@ def probe_alive(subs, outdir, max_workers=20):
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = {ex.submit(probe_one, sub): sub for sub in subs}
         for f in as_completed(futures):
-            result = f.result()
-            if result:
-                alive.append(result)
+            try:
+                result = f.result()
+                if result:
+                    alive.append(result)
+            except Exception:
+                pass  # Skip failed probes silently
 
-    alive.sort(key=lambda x: (x[2], x[0]))
+    alive.sort(key=lambda x: (int(x[2]) if x[2].isdigit() else 999, x[0]))
 
     with open(f"{outdir}/alive.txt", 'w') as f:
         for sub, proto, code, size, redir in alive:
@@ -448,6 +456,15 @@ def main():
     args = parser.parse_args()
 
     domain = args.domain.replace("https://", "").replace("http://", "").rstrip('/')
+    # Extract hostname safely: strip paths, ports, query strings
+    if '/' in domain:
+        domain = domain.split('/')[0]
+    if ':' in domain:
+        domain = domain.split(':')[0]
+    # FQDN validation: only allow hostname chars
+    if not re.match(r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$', domain):
+        print(f"[!] Invalid domain: {domain}")
+        sys.exit(1)
     outdir = args.out or f"/tmp/src_assess_{domain}"
     os.makedirs(outdir, exist_ok=True)
 

@@ -51,6 +51,9 @@ def main() -> int:
         "endpoints.tsv": "source\tendpoint\tmethod_guess\tauth_hint\tkeyword\trisk_type\tpriority\tdecision\n",
         "probe_results.tsv": "method\turl\tstatus\tsize\tcontent_type\thash\ttitle\tsensitive_hit\tcontrol_result\tdecision\tbody_path\theader_path\n",
         "interesting.tsv": "type\turl\tevidence\tseverity_hint\tnext_step\n",
+        "hypotheses.jsonl": "",
+        "tool_calls.jsonl": "",
+        "audit_trail.jsonl": "",
         "negative.md": f"# Negative evidence for {args.target}\n\n",
         "final_gate.md": f"# Final quality gate for {args.target}\n\nStatus: IN_PROGRESS\n\n",
     }

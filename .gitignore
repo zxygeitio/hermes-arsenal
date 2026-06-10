@@ -110,6 +110,18 @@ Thumbs.db
 *.tmp
 *.temp
 
+# === LSP & Node Modules ===
+lsp/
+node_modules/
+
+# === Local Binaries ===
+bin/
+
+# === Runtime Data ===
+data/
+*.db
+*.sqlite
+
 # === Keep these directories but ignore their runtime data ===
 # skills/ - KEEP (core value)
 # scripts/ - KEEP (core value)

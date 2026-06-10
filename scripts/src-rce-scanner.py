@@ -60,7 +60,7 @@ def req(url, method="GET", data=None, cookie=None, headers=None, timeout=10, bod
             resp_body = f.read()
 
         return status, hdr, resp_body, resp_time
-    except:
+    except Exception:
         return '', '', '', 0
 
 

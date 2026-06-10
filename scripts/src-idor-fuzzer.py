@@ -54,7 +54,7 @@ def req(url, method="GET", data=None, cookie=None, token=None, headers=None, tim
             body = f.read()
 
         return status, hdr, body, size
-    except:
+    except Exception:
         return '', '', '', 0
 
 

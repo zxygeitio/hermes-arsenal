@@ -20,6 +20,10 @@ import json
 import time
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 SCRIPTS_DIR = "/root/.hermes/scripts"
 
@@ -405,16 +409,21 @@ USER_ENUM_TESTS = {
 
 def fetch_target(url, timeout=6):
     """获取目标响应"""
-    try:
-        cmd = [
-            'curl', '-sk', '--max-time', str(timeout),
-            '-D', '/dev/stderr',
-            url
-        ]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
-        return r.stderr, r.stdout
-    except Exception:
-        return '', ''
+    if httpx:
+        try:
+            client = httpx.Client(verify=False, timeout=timeout, follow_redirects=True)
+            resp = client.get(url)
+            headers = '\n'.join(f'{k}: {v}' for k, v in resp.headers.items())
+            return headers, resp.text
+        except Exception:
+            return '', ''
+    else:
+        try:
+            cmd = ['curl', '-sk', '--max-time', str(timeout), '-D', '/dev/stderr', url]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
+            return r.stderr, r.stdout
+        except Exception:
+            return '', ''
 
 
 def match_fingerprint(headers, body, url):
@@ -455,40 +464,38 @@ def match_fingerprint(headers, body, url):
 def test_vuln_path(base_url, path, method, timeout=6):
     """测试单个漏洞路径"""
     url = base_url.rstrip('/') + path
-    try:
-        if method == 'POST':
-            cmd = [
-                'curl', '-sk', '--max-time', str(timeout),
-                '-X', 'POST',
-                '-H', 'Content-Type: application/json',
-                '-d', '{"test":"probe"}',
-                '-o', '/tmp/auto_vuln_body',
-                '-w', '%{http_code}|%{size_download}',
-                url
-            ]
-        else:
-            cmd = [
-                'curl', '-sk', '--max-time', str(timeout),
-                '-o', '/tmp/auto_vuln_body',
-                '-w', '%{http_code}|%{size_download}',
-                url
-            ]
-
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
-        parts = r.stdout.strip().split('|')
-        code = parts[0] if parts else '000'
-        size = parts[1] if len(parts) > 1 else '0'
-
-        body = ''
+    if httpx:
         try:
-            with open('/tmp/auto_vuln_body', 'r', errors='ignore') as f:
-                body = f.read()
-        except:
-            pass
-
-        return code, size, body
-    except Exception:
-        return '000', '0', ''
+            client = httpx.Client(verify=False, timeout=timeout, follow_redirects=True)
+            if method == 'POST':
+                resp = client.post(url, json={"test": "probe"})
+            else:
+                resp = client.get(url)
+            return str(resp.status_code), str(len(resp.content)), resp.text
+        except Exception:
+            return '000', '0', ''
+    else:
+        try:
+            if method == 'POST':
+                cmd = ['curl', '-sk', '--max-time', str(timeout), '-X', 'POST',
+                       '-H', 'Content-Type: application/json', '-d', '{"test":"probe"}',
+                       '-o', '/tmp/auto_vuln_body', '-w', '%{http_code}|%{size_download}', url]
+            else:
+                cmd = ['curl', '-sk', '--max-time', str(timeout),
+                       '-o', '/tmp/auto_vuln_body', '-w', '%{http_code}|%{size_download}', url]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
+            parts = r.stdout.strip().split('|')
+            code = parts[0] if parts else '000'
+            size = parts[1] if len(parts) > 1 else '0'
+            body = ''
+            try:
+                with open('/tmp/auto_vuln_body', 'r', errors='ignore') as f:
+                    body = f.read()
+            except Exception:
+                pass
+            return code, size, body
+        except Exception:
+            return '000', '0', ''
 
 
 def test_user_enum(base_url, enum_config, timeout=6):
@@ -516,7 +523,7 @@ def test_user_enum(base_url, enum_config, timeout=6):
             try:
                 with open('/tmp/auto_enum_body', 'r', errors='ignore') as f:
                     resp = f.read()
-            except:
+            except Exception:
                 pass
 
             exists = any(ind in resp for ind in enum_config.get('exists_indicators', []))

@@ -123,6 +123,22 @@ class VulnSignatureDB:
 | cisco-asa | CVE-2018-0296 | high | nuclei |
 | wordpress | - | high | wpscan |
 | drupal | CVE-2014-3704 | critical | sqlmap |
+| ssti | - | critical | tplmap |
+| xss | - | high | dalfox |
+| sqli | - | critical | sqlmap |
+| cmdi | - | critical | commix |
+| lfi | - | high | custom |
+| xxe | - | high | custom |
+| ssrf | - | high | custom |
+| deserialization | - | critical | ysoserial |
+| kerberos | - | high | kerbrute |
+| ad_cert | - | high | Certipy |
+| ad_coercion | - | high | Coercer |
+| smb | - | high | enum4linux-ng |
+| winrm | - | high | evil-winrm |
+| responder | - | high | Responder |
+| bloodhound | - | high | BloodHound |
+| tunnel | - | high | chisel + ligolo-ng |
 
 ### 4. SmartVulnScanner 智能扫描器
 

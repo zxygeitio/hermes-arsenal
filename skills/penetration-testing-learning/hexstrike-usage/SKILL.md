@@ -132,6 +132,11 @@ Should return `"status":"healthy"`.
 - nuclei默认会扫描所有模板，120秒超时很常见
 - 解决：对nuclei使用severity+tags限制扫描范围，避免扫描5951个模板
 - 示例：`{"target":"URL", "severity":"critical,high", "tags":["cve2021,rce,sqli"]}`
+- MCP调用nuclei_scan经常超时(300s limit)，对多个目标扫描时建议直接用terminal:
+  ```bash
+  nuclei -u https://TARGET -severity critical,high -timeout 10 -retries 1 -rl 5 -o /tmp/nuclei_TARGET.txt &
+  ```
+  后台并行运行，避免MCP超时阻塞整个流程
 
 ### ffuf需要wordlist文件
 - ffuf的`-w`参数必须指定本地存在的wordlist文件路径

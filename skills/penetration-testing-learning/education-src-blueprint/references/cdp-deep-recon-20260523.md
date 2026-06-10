@@ -48,6 +48,7 @@ The durable lesson is to decrypt before claiming leakage; encrypted data wrapper
 ### `ehall`, `cas`, `aic`, `webvpn`, `jy`, `mail`
 - `ehall`, `cas`, `aic`, `jy`, `welcome`, `sicsve`, and `tafe` were intermittently reachable and later timed out. Treat this as target/network instability, not evidence.
 - Earlier CDP references already cover the same JSONP/docrepo/systemSetting/CAS/aic/webvpn/jy leads; this run produced no new sensitive data or write capability.
+- **2026-06-10更新**: aic.cdp.edu.cn 确认存在CORS配置不当 (`Access-Control-Allow-Origin: *` + `Access-Control-Allow-Credentials: true`), 但API端点返回空响应(可能需认证)。CAS登录页JS泄露安全中心端口4102/4107(联奕CAS lyuapServer)。详见 `cdp-edu-cn-testing-patterns-20260610.md`。
 - `mail.cdp.edu.cn` remains Tencent Enterprise Mail. DNS/DMARC/SPF weakness or standard login failure behavior is not medium+ without authorized spoofed-delivery proof or account takeover chain.
 
 ## No-submit rule

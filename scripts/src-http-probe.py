@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Low-noise HTTP probe helper for Hermes SRC workspaces.
 
 Input: newline-delimited URLs.
@@ -18,6 +18,7 @@ before quality gate review.
 from __future__ import annotations
 
 import argparse
+import csv
 import difflib
 import hashlib
 import os
@@ -29,7 +30,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
-HEADER = "method\turl\tstatus\tsize\tcontent_type\thash\ttitle\tsensitive_hit\tcontrol_result\tdecision\tbody_path\theader_path\tcontrol_hash\tsimilarity\tfp_class\treject_reason\n"
+# HEADER defined after classify_fp below (uses HEADER_FIELDS list)
 
 WAF_RE = re.compile(r"Web应用防火墙|安全狗|云盾|阿里云盾|AliyunDun|GSRM Security|Request blocked|Access Denied|非法请求|请求异常|拦截|WAF|blocked by|forbidden by", re.I)
 LOGIN_RE = re.compile(r"<form[^>]+(login|password|passwd)|/login|请登录|未登录|登录超时|login required|sign in|用户名|密码", re.I)
@@ -189,8 +190,13 @@ def classify_fp(result: ProbeResult, control: ProbeResult | None) -> None:
         result.decision = "NEGATIVE_OR_LOW_SIGNAL"
 
 
-def row(result: ProbeResult) -> str:
-    return "\t".join([
+HEADER_FIELDS = ["method", "url", "status", "size", "content_type", "hash", "title", "sensitive_hit", "control_result", "decision", "body_path", "header_path", "control_hash", "similarity", "fp_class", "reject_reason"]
+HEADER = "\t".join(HEADER_FIELDS) + "\n"
+
+
+def row_values(result: ProbeResult) -> list[str]:
+    """Return TSV row as list of strings (safe for csv.writer)."""
+    return [
         result.method,
         result.url,
         result.status,
@@ -199,7 +205,7 @@ def row(result: ProbeResult) -> str:
         result.digest,
         result.title,
         result.hits,
-        result.reject_reason,
+        result.control_result or "",  # Was incorrectly reject_reason
         result.decision,
         str(result.body_path),
         str(result.header_path),
@@ -207,7 +213,16 @@ def row(result: ProbeResult) -> str:
         str(result.similarity),
         result.fp_class,
         result.reject_reason,
-    ])
+    ]
+
+
+def row(result: ProbeResult) -> str:
+    """Write TSV row safely using csv.writer (handles embedded tabs/newlines)."""
+    import io
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter="\t", lineterminator="")
+    writer.writerow(row_values(result))
+    return buf.getvalue()
 
 
 def existing_method_url_keys(path: Path) -> set[tuple[str, str]]:
@@ -242,6 +257,7 @@ def main() -> int:
     parser.add_argument("--method", default="GET", help="HTTP method for all URLs; default GET")
     parser.add_argument("--origin", default="", help="Optional Origin header for CORS probing")
     parser.add_argument("--control", action="store_true", help="fetch one random same-origin control URL per origin and classify SPA/WAF/login/unified-error false positives")
+    parser.add_argument("--scope-domain", default="", help="comma-separated allowed domains; URLs outside scope are skipped (e.g. 'example.edu.cn,test.edu.cn')")
     args = parser.parse_args()
 
     workspace = Path(args.workspace).resolve()
@@ -249,11 +265,31 @@ def main() -> int:
     out = workspace / "probe_results.tsv"
     ensure_output(out, args.fresh)
     seen = existing_method_url_keys(out) if args.dedupe else set()
+
+    # v2.1: Scope enforcement
+    scope_domains = set()
+    if args.scope_domain:
+        scope_domains = {d.strip().lower() for d in args.scope_domain.split(",") if d.strip()}
+
     urls = []
+    skipped_scope = 0
     for line in Path(args.urls).read_text(encoding="utf-8", errors="replace").splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
+            # Filter by scope if set
+            if scope_domains:
+                try:
+                    host = urlparse(line.split()[0]).netloc.lower()
+                    if not any(host == d or host.endswith(f".{d}") for d in scope_domains):
+                        skipped_scope += 1
+                        continue
+                except Exception:
+                    skipped_scope += 1
+                    continue
             urls.append(line)
+    if skipped_scope:
+        print(f"[!] Skipped {skipped_scope} out-of-scope URLs")
+
     method = args.method.upper().strip()
     controls: dict[str, ProbeResult] = {}
     skipped = 0

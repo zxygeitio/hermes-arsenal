@@ -241,7 +241,7 @@ def load_extra_rules():
         try:
             with open(extra_file) as f:
                 return json.load(f)
-        except:
+        except Exception:
             pass
     return {}
 

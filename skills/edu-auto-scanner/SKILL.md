@@ -69,7 +69,10 @@ auto-vuln-scan.py 内置以下产品指纹:
 - 泛微OA (Weaver) — 代码数据、微信配置
 - 金智教育CAS — 密钥泄露、验证码检查
 - Sangfor WebVPN — 登录用户枚举、密钥登录
-- Visual SiteBuilder (VSB) — 配置文件
+- Visual SiteBuilder (VSB) — 配置文件、COLLCK反爬Cookie
+- 联奕CAS (Lianyi lyuapServer) — 管理后台暴露、Open Redirect、SMS用户枚举、源码信息泄露
+- Liferay Portal — JSONWS API、company/virtual-host、document_library
+- CoCall即时通讯 — 公网暴露、租户架构(/interface/{tenant}/)
 - Apache Shiro — rememberMe Cookie
 - Tomcat/Nginx — 管理页面、状态页
 
@@ -107,6 +110,37 @@ auto-vuln-scan.py 内置以下产品指纹:
 - `is_vuln_func` 接收body字符串，返回bool
 - 待扩展: 用友/金蝶/蓝凌/通达/浪潮/正方/强智/青果/金智/树维
 
+### VSB博达网站群COLLCK反爬绕过
+- VSB CMS设置COLLCK cookie进行反爬，curl直接请求会302循环
+- ❌ `curl http://target/` → 302无限循环
+- ✅ 用浏览器工具访问(cookie自动设置)，或先请求一次获取COLLCK值再带cookie重试
+- ✅ 部分静态资源(JS/CSS)不需要COLLCK即可访问: `/system/resource/js/*.js`
+- 指纹: `_sitegray`路径、`system/resource/js/vsbscreen.min.js`、`index.vsb.css`
+
+### 联奕CAS (lyuapServer) 指纹和攻击面
+- 联奕科技CAS是中国高校常用统一身份认证厂商
+- 指纹: 路径`/lyuapServer/login`、页面含`联奕科技`、`LIANYI TECHNOLOGY`
+- 管理后台: `/ly_web_casconsole/system/login!login.action` (常公网暴露)
+- 管理后台无服务端验证码，验证码为客户端JS校验(`checkcaptcha`字段)
+- SMS登录: `/lyuapServer/MsmInfo` 端点，响应码1=成功/2=频率限制/3=用户不存在
+- Open Redirect: `service`参数接受任意URL(包括外部域名和javascript: URI)
+- LT token泄露主机名: `LT-xxxxx-random-cas01.example.org`
+- 源码常泄露: 内网IP、内部域名(cas.leaf.com等)、RSA公钥
+- 密码找回: `/safe/findPassByOther.jsp` 暴露组织架构
+
+### Liferay Portal JSONWS API
+- 端点: `/api/jsonws/invoke` (POST)、`/api/jsonws/{path}` (GET/POST)
+- 认证后可调用: `/company/get-company-by-virtual-host`、`/user/get-user-by-screen-name`
+- 未认证返回: `"Authenticated access required"` (确认端点存在)
+- 不存在端点返回: `"No JSON web service action associated with path"`
+- CVE-2020-7961: JSONWS反序列化RCE(需认证)
+
+### CoCall即时通讯系统
+- 校园即时通讯工具，常部署在非标准端口(如65083)
+- 指纹: 页面标题`CoCall`、含`download`路径、租户架构
+- API路径: `/interface/{tenant}/` (返回"未找到租户信息"表示端点存在)
+- 常见端口: 65083(HTTPS)、20083(内网)
+
 ### Workspace集成
 - `auto-vuln-scan.py --workspace <domain>` 自动保存漏洞到workspace
 - workspace目录: `/tmp/vuln_reports/<domain>/`
@@ -119,3 +153,62 @@ auto-vuln-scan.py 内置以下产品指纹:
 - CERNET网络策略: 见 `pentest-recon-driven` 的 `references/cuit-edu-testing-patterns.md`
 
 ## 漏洞结果需人工复核，自动扫描可能有误报
+
+## 代码质量规范 (2026-06-02优化后)
+
+### 必须遵守
+- 零`except:`裸异常 → 全部用`except Exception:`
+- httpx POST用`json=`不是`json_data=`
+- SSL错误不重试(直接raise)
+- 路径用`os.environ.get()`或`os.path.dirname(__file__)`，不硬编码
+- 公开API有docstring
+- 日志脱敏(Authorization/Cookie头)
+- Verifier safe_mode默认True
+
+### 连接池配置
+- 教育网慢目标: connect_timeout=8, read_timeout=8, max_connections=80, max_keepalive=20
+- 不要用默认200连接池(教育网大量连接会超时)
+
+## 渗透测试框架 v2.0 (2026-06-02)
+
+完整框架位于 `/root/.hermes/scripts/pentest_*.py`:
+
+| 模块 | 功能 |
+|------|------|
+| pentest_engine.py | HTTP引擎(httpx连接池/拦截器/代理/缓存/UA轮换) |
+| pentest_session.py | Session管理(Cookie Jar/JWT/CAS/多账号) |
+| pentest_fuzzer.py | Fuzzing(参数/Header/路径 + 7类58个payload) |
+| pentest_verifier.py | 漏洞验证(SQLi/XSS/RCE/IDOR/SSRF/LFI + safe_mode) |
+| pentest_intel.py | 情报闭环(指纹→CVE→PoC + NVD API + SQLite) |
+| pentest_reporter.py | 报告(CVSS + 补天/Markdown/JSON/HTML) |
+| pentest_network.py | 网络(代理链/WAF检测+绕过/Payload编码) |
+| pentest_framework.py | 主控(串联全部模块 + CLI) |
+| pentest_utils.py | 公共工具(HTTP/JSON/日志/路径/进度条) |
+| pentest_portscan.py | 端口扫描(socket并发+服务识别+Banner抓取) |
+| pentest_dnslog.py | DNSLOG/HTTPLOG回调(blind漏洞确认) |
+| pentest_cve_sync.py | CVE数据库(NVD API同步+本地SQLite查询) |
+| pentest_param_discover.py | 智能参数发现(JS/HTML/Swagger/GraphQL提取) |
+| pentest_automation.py | 自动化增强(进度持久化+错误恢复+批量扫描) |
+
+```bash
+# 快速扫描
+/usr/bin/python3 /root/.hermes/scripts/pentest_framework.py target.edu.cn --scan-type fast
+
+# 端口扫描
+/usr/bin/python3 -c "from pentest_portscan import PortScanner; print(PortScanner().scan_host('target', [22,80,443,8080]))"
+
+# 参数发现
+/usr/bin/python3 /root/.hermes/scripts/pentest_param_discover.py https://target
+
+# CVE同步
+/usr/bin/python3 /root/.hermes/scripts/pentest_cve_sync.py --sync --product "致远OA"
+```
+
+## GPT-5.5协作模式
+
+用户有自定义GPT-5.5 provider。delegate_task的model override不生效，需直接用Python调用API。见 `references/gpt55-collaboration-notes.md`。
+
+并行模式: threading.Thread并行3-5个请求。API不稳定时加重试(retries=3, sleep=5)。
+
+## 优化记录
+见 `references/optimization-log-20260602.md` 和 `references/pentest-framework-architecture.md`

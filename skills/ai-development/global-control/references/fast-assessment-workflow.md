@@ -26,6 +26,16 @@
   first_hits.sh     - 推荐的第一轮测试命令
 ```
 
+## 下一步：子域价值分级
+
+快筛产出 alive.txt 后，用 practical-next 做价值分级再决定测试顺序：
+
+```bash
+/usr/bin/python3 /root/.hermes/scripts/src-practical-next.py /tmp/src_assess_<domain>/ --tiers --show-skipped
+```
+
+自动过滤 CDN/static/www/news 等低价值目标，按 P0(api/auth) > P1(ehall/oa) > P2(app/mobile) 分级。
+
 ## 已知坑点
 
 ### 1. 裸域名不带www

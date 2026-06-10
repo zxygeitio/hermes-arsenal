@@ -5,7 +5,58 @@ description: 将 PentAGI 项目改造为纯 CLI 工具的方法论 — 绕过 Fl
 
 # PentAGI CLI 化改造方法论
 
-## 2026-06-02 上游状态补充
+## 参考文件
+
+- `references/pentagi-v2.1-analysis.md` — PentAGI v2.1.0 完整可复用能力分析（7个高价值模块 + CLI化方案）
+- `references/pentagi-pr-suggestions.md` — 可提 PR 的 7 个方向（含代码改动点、接受概率、提交顺序）
+
+## 2026-06-07 上游 v2.1.0 新增可复用能力
+
+PentAGI v2.1.0 (2026-05-29) 新增了以下 CLI 化时值得保留的能力：
+
+### Execution Monitor（执行监控/Loop Guard）
+- `EXECUTION_MONITOR_SAME_TOOL_LIMIT` — 同一工具连续调用上限（默认5次）
+- `EXECUTION_MONITOR_TOTAL_TOOL_LIMIT` — 总工具调用上限（默认10次）
+- 超限触发 mentor 干预，切换策略
+- 对小模型（<32B）效果提升 2x，代价 2-3x 执行时间
+- **CLI 化建议**：直接在 `callWithTools()` 循环中加计数器，超限返回错误提示
+
+### Task Planning（任务规划）
+- `AGENT_PLANNING_STEP_ENABLED` — 执行前自动分解为 3-7 步
+- **CLI 化建议**：可选 pre-execution prompt，让 LLM 先输出步骤再执行
+
+### Sploitus 漏洞搜索
+- 聚合 ExploitDB + Packet Storm + GitHub Security Advisories
+- `SPLOITUS_ENABLED` 开关
+- **CLI 化建议**：作为 `search` 工具的新 provider，类似 duckduckgo/google
+
+### Chain Summarization（链式摘要）
+- 保留最近 QA 段落（不摘要），旧段落压缩
+- 可配置字节数上限（50KB-75KB）
+- **CLI 化建议**：在 chat history 超限时自动摘要旧消息
+
+### File Management
+- `/work/uploads`, `/work/resources` + 容器同步
+- **CLI 化建议**：用本地目录映射替代容器同步
+
+### Knowledge Base + 向量搜索
+- pgvector 语义搜索 + 匿名化
+- **CLI 化建议**：SQLite + 简单 TF-IDF 替代 pgvector，或跳过
+
+### 多 Agent 角色（12种 Executor）
+新增 `EnricherExecutor`（结果丰富化）和 `ReporterExecutor`（报告生成）
+- **CLI 化建议**：保留 pentester/searcher/coder/reporter 四个核心角色
+
+## 2026-06-07 深度验证补充
+
+已对 main 分支代码做逐文件验证（`args.go`、`config.go`、`templates/`、`tools/`、`docker/client.go`）。关键纠正：
+
+- **Execution Monitor 不是空壳** — 通过 `question_execution_monitor.tmpl` 实现 prompt-based adviser consultation，不是代码级计数器。
+- **Language Bug (#285) 已修复** — `args.go` 采用 "Technical-channel" (英文) + "Engagement-log" (用户语言) 双通道设计。
+- **Sploitus 已实现** — PR#133 已合并，是搜索引擎集成（不是独立工具文件）。`SPLOITUS_ENABLED` 默认 false。
+- **Container Escape (#337)** — `docker/client.go:282-284` 确认挂载 host socket，`.env.example` 原默认 `DOCKER_INSIDE=true`。
+
+架构深度分析见 `references/pentagi-architecture-deep-dive.md`。
 
 已读取 `vxcontrol/pentagi` main 分支（本地快照 `/tmp/pentagi-src`）：HEAD `879e87c`，最新 release tag `v2.1.0`（2026-05-29）。当前 PentAGI 重点已经从“能跑的早期自动化”扩展为：多 Provider（含 Qwen/Kimi/GLM/DeepSeek/Gemini 新模型配置和 Qwen thinking control）、工具调用日志、assistant flow 管理、pgvector knowledge 管理、Graphiti 可选知识图、Langfuse/Grafana observability、flow-scoped files/resources、anonymization、chain summarizer 配置。`examples/proposals/mcp_client_integration.md` 仍是 RFC/design-only，不是 runtime MCP 实现；核心原则是显式配置、allowlist、`mcp.<server>.<tool>` 命名空间、审计、超时/响应大小限制和故障隔离。
 
@@ -176,6 +227,14 @@ go build -trimpath -o pentagi-cli ./cmd/cli/
 # 4. 运行
 ./pentagi-cli --provider openai --api-key sk-... --model gpt-4o
 ```
+
+## Pitfalls
+
+1. **声称某功能"不存在"前必须验证** — 用户纠正过："再严谨一下"。分析开源项目时，功能可能以搜索引擎集成形式存在（如 Sploitus 作为 DuckDuckGo 类型的 search provider），而不是独立工具文件。必须检查：`.env.example` 中的配置变量、`config.go` 中的 struct 字段、`CONTRIBUTORS.md` 中的 PR 记录、open/closed PRs。config 存在 ≠ 实现存在（如 Execution Monitor），但也别把已实现的说成缺失。
+
+2. **PR 重复提交** — 提 PR 前必须检查 open PRs 列表。本 session 中 ZIP fix（#339）和 XSStrike fix（#343）已被 mason5052 占了。
+
+3. **代码级验证标准** — 声称"X 没有实现"需要：在 `backend/pkg/tools/` 目录搜索相关函数名/常量名，确认无匹配。声称"Y 有 bug"需要：定位具体文件和行号。声称"Z 可以优化"需要：确认当前实现确实有该问题。
 
 ## 参考代码位置
 

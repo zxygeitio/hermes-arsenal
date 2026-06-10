@@ -52,6 +52,25 @@ curl -sk "http://ids.<domain>/authserver/<theme>/static/web/js/login.js" | grep 
 **注意**: DEFAULT_SALT是固定值(不同于每会话轮转的pwdDefaultEncryptSalt)
 **注意**: 此漏洞属于教育SRC黑名单模式(pwdDefaultEncryptSalt泄露), 通过率低
 
+### 6. 非金智CAS的Open Redirect (高危)
+**特征**: 部分学校使用自定义CAS(非金智/联奕)，service参数可能无白名单校验
+**检测关键**: 检查form action是否包含恶意service参数值（不只是返回200）
+```bash
+# 有效检测：form action中包含evil.com = 漏洞存在
+curl -sk 'https://sso.<domain>/cas/login?service=http://ehall.<domain>.attacker.com' | grep 'action='
+# 返回: action="/cas/login?service=http://ehall.<domain>.attacker.com" → 漏洞确认
+
+# 无效检测：只返回200不代表漏洞存在，必须确认action
+```
+
+**攻击载荷**（适用于非金智CAS，金智CAS已修复此问题）：
+- 子域名攻击: `http://ehall.<domain>.attacker.com`
+- 用户信息攻击: `http://ehall.<domain>@evil.com`
+- 路径攻击: `http://evil.com/ehall.<domain>`
+- 注: 金智CAS会返回"未认证授权服务"拒绝未注册service
+
+**与金智CAS的区别**：金智CAS有白名单校验（返回"未认证授权服务"），自定义CAS可能无校验
+
 ### 2. 会话固定 (中危)
 **特征**: JSESSIONID暴露在URL和表单action中
 ```bash
@@ -135,3 +154,29 @@ curl -sk 'https://authserver.<domain>/authserver/login?service=https://ehall.<do
 |------|------|------|
 | hnca.edu.cn | Session Fixation + 密钥泄露 + Status泄露 | 已提交 |
 | gxdlxy.com | DEFAULT_SALT泄露(login.js) + tenant/info配置泄露 | 未提交(黑名单模式) |
+| cumt.edu.cn | 加固良好: 3次锁定+验证码强制+FIDO+service白名单 | 无漏洞 |
+| gxnu.edu.cn | 自定义CAS(非金智): Open Redirect(高危)+CORS通配符(中危)+SAML元数据泄露 | 2026-06-09 |
+
+## 加固良好的金智CAS特征 (cumt.edu.cn模式)
+
+当金智CAS配置良好时，以下JS变量表明安全加固:
+```javascript
+var captchaSwitch = "1";           // 验证码强制开启
+var _badCredentialsCount = "3";    // 3次错误后锁定
+var _fidoEnabled = "true";         // FIDO认证支持
+var isQrLoginEnabled = "true";     // QR码登录
+var is_dynamicLogin = "true";      // 动态码登录
+var is_userNameLogin = "true";     // 用户名密码登录
+```
+
+**自定义主题路径**: 部分学校使用自定义主题(如cumt.edu.cn用`cumtcusTheme_20250616`)，
+JS/CSS路径为 `/authserver/<customTheme>/static/`，标准主题路径探测会404。
+检测方法: `curl -sk 'https://authserver.TARGET/authserver/login' | grep -oP 'href="/authserver/[^/]+/static/' | head -1`
+
+**加固CAS的负面验证清单**:
+- [ ] pwdDefaultEncryptSalt: 未泄露
+- [ ] /authserver/status: 返回401(已加固)
+- [ ] needCaptcha: 返回完整HTML页面(需session)
+- [ ] service参数: 未注册应用返回"应用未注册"(白名单生效)
+- [ ] 暴力破解: 验证码+锁定+可能的WAF封禁
+- 结论: 无提交价值，记录为"加固良好"

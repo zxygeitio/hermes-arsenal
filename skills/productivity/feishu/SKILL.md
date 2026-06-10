@@ -9,6 +9,9 @@ category: productivity
 ## 认证
 - App ID: `${FEISHU_APP_ID}` (从环境变量读取)
 - App Secret: `${FEISHU_APP_SECRET}` (从环境变量读取，切勿硬编码)
+
+> **安全警告**: App Secret 绝对不能硬编码在 SKILL.md 或脚本中。始终通过环境变量 `${FEISHU_APP_SECRET}` 引用。
+> 如果要推送到 GitHub，必须确保 .env 在 .gitignore 中。
 - 获取 Token: `POST https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal`
 - Token 有效期 2 小时，需重新申请
 

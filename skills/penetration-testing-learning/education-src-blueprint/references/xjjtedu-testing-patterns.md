@@ -1,9 +1,12 @@
-# 新疆交通职业技术大学 xjjtedu.com 测试模式 (2026-06-01)
+# 新疆交通职业技术大学 xjjtedu.com 测试模式 (2026-06-01, 更新2026-06-08)
 
 ## 目标概况
-- 主域名: xjjtedu.com
-- 真实IP: 124.119.15.220 (xjjtedu.com), 124.119.15.215 (xjjtxy.cn)
-- 技术栈: 蓝盾CAS + Tomcat/7.0.109 + Hibernate3 + Spring + Shiro + CoCall(华宇信息Thunisoft)
+- 主域名: xjjtedu.com (124.119.15.220)
+- CAS域名: xjjtxy.cn (124.119.15.215)
+- BPM域名: xjjtxy.top (事务中心, Vue.js SPA + Java后端)
+- CMS: 博达网站群(VSB) + COLLCK反爬cookie
+- CAS: 联奕科技(Lianyi) lyuapServer (非蓝盾)
+- 后端: Liferay Portal + Tomcat/7.0.109
 - 子域名: 50+个(教务/招生/图书馆/科研/视频会议等)
 
 ## 发现漏洞汇总 (11个)

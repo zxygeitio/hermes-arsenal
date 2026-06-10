@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/python3
 """
 edu-full-scan.py - 教育SRC全自动化扫描主控脚本
@@ -27,9 +28,9 @@ import time
 import argparse
 from datetime import datetime
 
-PYTHON = '/usr/bin/python3'
-SCRIPTS_DIR = '/root/.hermes/scripts'
-WORKSPACE_BASE = '/tmp/vuln_reports'
+PYTHON = os.environ.get('PYTHON_BIN', '/usr/bin/python3')
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE_BASE = os.environ.get('PENTEST_WORKSPACE', '/tmp/vuln_reports')
 
 
 def run_script(script, args, timeout=300):
@@ -56,7 +57,7 @@ def run_cmd(cmd, timeout=60):
     try:
         r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
         return r.stdout.strip()
-    except:
+    except Exception:
         return ''
 
 

@@ -21,6 +21,24 @@ description: Burp Suite proxy setup with HTTPS certificate configuration on Kali
 /root/.hermes/scripts/hermes-burp-ready.sh
 ```
 
+Kali `burpsuite` 包装器参数坑：`--config-file` 和 `--project-file` 必须使用等号形式（如 `--config-file=/root/.BurpSuite/proxy_config.json`），不要写成 `--config-file /path`，否则包装器会报 `Expected a value for option config-file`。如果 `xdotool search --name Burp` 只看到 `burp-StartBurp` 且 `ss -tlnp | grep 8080` 长时间为空，说明 Burp GUI 停在启动/项目选择页，MCP 没坏，代理 listener 尚未创建；此时优先处理 GUI 启动页或用现成项目文件启动，再验证 8080。
+
+实测可恢复路径（2026-06-08）：若没有 Java/Burp 进程，先启动真实 GUI：
+
+```bash
+DISPLAY=:0.0 burpsuite --use-defaults --disable-extensions --config-file=/root/.BurpSuite/proxy_config.json
+```
+
+看到项目选择页时选择默认 `Temporary project in memory`，点击 `Start Burp`；若弹 `Burp Browser Error`，点 `OK` 后再点 `Start Burp`。成功标志：`ss -tlnp | grep ':8080'` 显示 `java` 监听，`burp_health` 返回 `reachable: true`。
+
+Burp GUI 卡住时的纯 CLI 降级：
+
+```bash
+/root/.hermes/scripts/hermes-mitm-fallback.sh verify
+```
+
+该脚本启动 `mitmdump` 监听 `127.0.0.1:8081`，验证 HTTP/HTTPS，输出 `/tmp/hermes-mitm-fallback/traffic.jsonl` 和 `/tmp/hermes-mitm-fallback/flows.mitm`；用于临时抓包/落证据，不替代 Burp MCP 的报告分析能力。
+
 该脚本会完成：
 - 调用 `hermes-ensure-tools.sh --burp` 启动/确认 Burp Suite GUI、Gateway、Burp MCP server。
 - 确认 `127.0.0.1:8080` 监听、`hermes mcp test burpsuite` 发现 6 个工具。

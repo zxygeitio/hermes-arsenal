@@ -60,3 +60,31 @@ When the user asks to inspect or optimize the whole Hermes Agent system, use the
 - `generate_report.py` — Evolution report generator
 - `datasets/` — Eval datasets
 - `tests/` — Test suites
+
+## GPT-Audit-Driven Upgrade (2026-06-09)
+
+An alternative to DSPy/GEPA evolution: use a strong external model (GPT-5.5, Claude) to statically audit framework scripts, then fix the issues systematically.
+
+### Workflow
+1. Delegate code review to a GPT model via `delegate_task(goal="Review these scripts for bugs/flaws", toolsets=["terminal","file"])`
+2. GPT reads all scripts and returns numbered findings with `[FILE] [SEVERITY] [TYPE]` tags
+3. Sort by severity: CRITICAL > HIGH > MEDIUM > LOW
+4. Fix in batches: shebangs first, then shell injection, then logic flaws
+5. Verify each fix: syntax check + functional test
+6. Capture class-level patterns as `references/python-security-script-audit-checklist.md`
+
+### What GPT found (75 issues across 7 scripts)
+- 6x shebang `env python3` (all scripts)
+- 3x `shell=True` with unsanitized input
+- 4x generated commands without `shlex.quote()`
+- 2x 403/404 false rejection (quality gate)
+- 1x method downgrade (PUT/PATCH/DELETE → POST)
+- 1x dedup too aggressive (URL-only, loses different methods)
+- 1x test/dev targets classified as low-value (actually P1 in SRC)
+
+### Lessons
+- External audit catches patterns the author misses (tunnel vision)
+- Fix by category, not by file (shebangs all at once, injection all at once)
+- Always verify after fixing (syntax + functional)
+- Capture class-level patterns, not session-specific fixes
+- `pentest-unified-engine` skill has the full checklist: `references/python-security-script-audit-checklist.md`

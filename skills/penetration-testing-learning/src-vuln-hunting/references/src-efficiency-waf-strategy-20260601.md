@@ -83,6 +83,20 @@ curl -sk -H 'X-Real-IP: 127.0.0.1' 'https://target/'
 对独立子系统使用delegate_task并行侦察，效果显著(njfu实战28秒完成3路侦察)。
 注意: CERNET目标先单curl确认可达再并行，避免全部超时。
 
+## 腾讯云WAF (stgw) CORS测试绕过 (2026-06-05)
+
+腾讯云WAF拦截带Origin头的请求(HTTP 218),但普通GET的CORS响应头正常返回。
+
+```bash
+# 不发Origin,直接检查CORS头
+curl -sk -D - 'https://target/' | grep -i 'access-control'
+# Referer替代Origin(通常不触发WAF)
+curl -sk -H 'Referer: https://evil.com/' 'https://target/api' -D -
+```
+
+- ACAO=* + ACAC=true = 配置缺陷(浏览器拒绝,但需报告)
+- 只有CORS头没有数据端点 = 低危/不建议提交
+
 ## 最近实战统计 (2026-06-01)
 
 | 目标 | 高危 | 中危 | 低危 | 用时 | 备注 |

@@ -27,7 +27,7 @@ def run_cmd(cmd, timeout=10):
     try:
         r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
         return r.stdout.strip()
-    except:
+    except Exception:
         return ""
 
 
