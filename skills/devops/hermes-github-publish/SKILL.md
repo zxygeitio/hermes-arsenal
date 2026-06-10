@@ -20,6 +20,7 @@ category: devops
 > 通用项目（非 Hermes workspace）发布流程见 `references/general-publish-workflow.md`。
 > 技能库仓库发布（agentskills.io 格式）见 `references/skills-repo-publishing-format.md`。
 > 公开发布前的公司名/敏感信息匿名化规则见 `references/legal-anonymization-rules.md`。
+> 从 GitHub 技能库仓库同步技能到本地见 `references/skills-repo-sync-from-github.md`。
 
 ### Phase 1: 敏感文件识别
 
@@ -43,6 +44,14 @@ category: devops
 **中 - 缓存和日志：**
 - `cache/`, `logs/`, `burp_mcp/`, `backups/`, `vuln-intel/`
 
+**中 - 运行时工具和数据：**
+- `lsp/` — LSP 语言服务器 (bash-language-server, pyright)，含 node_modules
+- `bin/` — 本地安装的二进制 (uv, uvx, tirith 等)
+- `data/` — skill-network 图、外部语料库缓存、tool_success.db
+- `node_modules/` — 可能出现在多个位置
+- `*.db`, `*.sqlite` — 工具记忆数据库 (tool_success.db 等)
+- `pairing/` — Feishu/平台配对审批状态 (feishu-approved.json 等)
+
 **结构 - 嵌入式 Git 仓库：**
 - `hermes-agent/`, `skills/ai-development/*/source/`, `checkpoints/`
 
@@ -54,10 +63,11 @@ grep -rnE '(App Secret|app_secret|api_key|apikey|token|secret|password)[[:space:
   | grep -vE '(example|template|your_|xxx|placeholder|TODO|redact|示例|测试|test|\\$)'
 ```
 
-### Phase 3: 创建 .gitignore
+### Phase 3: 创建/更新 .gitignore
 
-关键模式：
+关键模式（完整 Hermes workspace）：
 ```gitignore
+# 核心排除
 hermes-agent
 skills/ai-development/*/source
 skills/misc/awesome-hermes-agent/source
@@ -65,7 +75,80 @@ skills/misc/awesome-hermes-agent/source
 !.env.example
 config.yaml
 !config.yaml.example
+
+# 个人数据
+memories/
+sessions/
+state.db
+state.db-shm
+state.db-wal
+.hermes_history
+
+# 运行时状态
+gateway_state.json
+gateway.lock
+gateway.pid
+channel_directory.json
+processes.json
+cron/
+pastes/
+plugins/
+
+# 工具运行时
+lsp/
+node_modules/
+bin/
+data/
+pairing/
+cache/
+logs/
+burp_mcp/
+backups/
+vuln-intel/
+state-snapshots/
+checkpoints/
+
+# 数据库和缓存
+*.db
+*.sqlite
+kanban.db
+*.db-shm
+*.db-wal
+.usage.json
+.usage.json.lock
+.skills_prompt_snapshot.json
+.update_check
+models_dev_cache.json
+provider_models_cache.json
+ollama_cloud_models_cache.json
+
+# Curator 内部状态
+skills/.curator_backups/
+skills/.curator_state
+skills/.bundled_manifest
+skills/.archive/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+*.log
+*.tmp
+*.temp
 ```
+
+> **重要**: 更新 .gitignore 后，已追踪的文件不会自动取消追踪。必须手动执行：
+> ```bash
+> git rm --cached <file>   # 单文件
+> git rm -r --cached <dir> # 目录
+> ```
 
 ### Phase 4: 创建配置模板
 - `.env.example` — 脱敏的环境变量模板
@@ -235,6 +318,8 @@ rm -f /tmp/.gh_token.txt  # 必须清理!
 9. **API 上传 fallback** — Contents API 逐文件上传（PUT /repos/{owner}/{repo}/contents/{path}）。每个文件一次调用，72 个文件约 2-3 分钟。仓库为空时 Contents API 会自动创建 main 分支。execute_code 超时设 300s。
 
 13. **.gitignore 语法** — 目录需要 `/` 后缀，但 submodule 引用不需要。写错会导致忽略失败。
+
+13b. **已追踪文件不会被 .gitignore 自动排除** — 更新 `.gitignore` 后，已经被 `git add` 过的文件仍然会被追踪。必须用 `git rm --cached <file>` 或 `git rm -r --cached <dir>` 手动取消追踪。常见场景：`bin/tirith`、`data/tool_success.db`、`lsp/` 等目录在首次提交后被加入，后续加 .gitignore 不会自动生效。推送前用 `git ls-files | grep -E "^(lsp/|bin/|data/|node_modules/)"` 检查是否有漏网之鱼。
 
 14. **创建仓库前先检查** — `GET /repos/OWNER/REPO`：404=不存在可创建，200=已存在直接用，403=token 无权限。API 创建已存在的仓库返回 422。
 
